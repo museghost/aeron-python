@@ -37,6 +37,8 @@ def main():
 
             if messages % 100000 == 0:
                 print("Messages %d total bytes %d" % (messages, count))
+            else:
+                print(nbytes)
 
         subscription = context.add_subscription(args.channel, args.stream_id)
         while True:
