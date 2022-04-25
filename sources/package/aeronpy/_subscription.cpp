@@ -83,7 +83,7 @@ void subscription::init_fragment_assembler()
 
                 pybind11::memoryview memview = py::memoryview(data_info);
 
-                py_func_handler(memview);
+                py_func_handler(memview, header);
 
                 return ControlledPollAction::CONTINUE;
             });

@@ -25,7 +25,7 @@ def main():
             available_image_handler=lambda *args: print(f'available image {args}'),
             unavailable_image_handler=lambda *args: print(f'unavailable image {args}'))
 
-        def process_data(data_bytes):
+        def process_data(data_bytes, header):
             global count, messages
             messages += 1
 
