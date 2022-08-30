@@ -63,12 +63,12 @@ vector<Image> subscription::images() const
     return *aeron_subscription_->images();
 }
 
-void subscription::init_fragment_assembler()
+void subscription::init_fragment_assembler(py::function handler)
 {
     if (!fragmentAssembler_)
     {
         fragmentAssembler_ = make_unique<ControlledFragmentAssembler>(
-            [this](AtomicBuffer& buffer,
+            [this, &handler](AtomicBuffer& buffer,
                    index_t offset,
                    index_t length,
                    Header& header)
@@ -78,12 +78,10 @@ void subscription::init_fragment_assembler()
                 auto data_info = py::buffer_info(
                     buffer.buffer() + offset,
                     sizeof(uint8_t),
-                    pybind11::format_descriptor<uint8_t>::format(),
+                    py::format_descriptor<uint8_t>::format(),
                     length);
 
-                pybind11::memoryview memview = py::memoryview(data_info);
-
-                py_func_handler(memview, header);
+                handler(py::memoryview(data_info), header);
 
                 return ControlledPollAction::CONTINUE;
             });
@@ -92,9 +90,7 @@ void subscription::init_fragment_assembler()
 
 int subscription::poll(py::function handler, int fragment_limit)
 {
-    py_func_handler = handler;
-
-    init_fragment_assembler();
+    init_fragment_assembler(handler);
 
     return aeron_subscription_->poll(fragmentAssembler_->handler(), fragment_limit);
 }
