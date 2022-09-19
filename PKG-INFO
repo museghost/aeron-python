@@ -1,10 +1,10 @@
 Metadata-Version: 1.0
 Name: aeron_python
-Version: 1.0.1
+Version: 1.0.2
 Summary: Python bindings for Aeron
 Home-page: https://github.com/fairtide/aeron-python
 Author: Fairtide Pte
 Author-email: UNKNOWN
 License: Apache 2.0
-Description: Python binfings for Aeron messaging
+Description: Python bindings for Aeron messaging
 Platform: UNKNOWN
