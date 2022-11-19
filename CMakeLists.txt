@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.7)
 project(aeron-python)
 
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup(TARGETS NO_OUTPUT_DIRS)
+
 set(PYTHON_VERSION 3 CACHE STRING "Target version of python")
 message(STATUS "Requested python version: ${PYTHON_VERSION}")
 
@@ -9,9 +12,9 @@ message(STATUS "Release version: ${RELEASE_VERSION}")
 
 # register modules
 include(CTest)
-include(ExternalProject)
+#include(ExternalProject)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 add_definitions(-Wno-unknown-attributes -fvisibility=hidden -fPIC)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -24,7 +27,7 @@ find_package(Boost COMPONENTS system REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 # find python
-find_package(Python 3.9...<3.10 COMPONENTS Interpreter Development)
+find_package(Python 3.9...<3.11 COMPONENTS Interpreter Development)
 
 if (PYTHON_FOUND)
     message(STATUS "Found Python interpreter: ${PYTHON_VERSION}")
@@ -34,20 +37,24 @@ endif ()
 
 include_directories(${Python_INCLUDE_DIRS})
 message(STATUS "Python include path: " ${Python_INCLUDE_DIRS})
+message(STATUS "Python executable path: " ${Python_EXECUTABLE})
+message(STATUS "Python extension suffix: ${Python_SOABI}")
+message(STATUS "Python interpreter type: ${Python_INTERPRETER_ID}")
+#message(STATUS "Python pypy version: ${Python_PyPy_VERSION}")
 
 # setup CMake to run tests
 enable_testing()
 
 # include subdirectories
-add_subdirectory(external)
-add_subdirectory(sources)
+#add_subdirectory(external)
+add_subdirectory(src)
 add_subdirectory(tests)
 
 # define package build targets
 add_custom_target(build-package
         COMMAND
             tar -cvf ${CMAKE_BINARY_DIR}/aeron_python.tar
-                sources
+                hppy
                 external
                 tests
                 CMakeLists.txt

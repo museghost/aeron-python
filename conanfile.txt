@@ -1,0 +1,15 @@
+[requires]
+pybind11/2.10.1
+aeron/1.39.0
+fmt/9.1.0
+boost/1.73.0
+
+[options]
+*:shared=False
+*:fPIC=True
+aeron:build_aeron_driver=True
+aeron:build_aeron_archive_api=True
+
+[generators]
+cmake
+cmake_find_package

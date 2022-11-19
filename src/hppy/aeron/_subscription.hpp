@@ -25,6 +25,7 @@
 #include <ControlledFragmentAssembler.h>
 #include <pybind11/pytypes.h>
 
+
 /**
  * @brief Represents an interop proxy for an Aeron subscription.
  */
@@ -89,7 +90,9 @@ public:
 private:
     std::shared_ptr<aeron::Subscription> aeron_subscription_;
 
+    pybind11::function py_func_handler;
+
     std::shared_ptr<aeron::ControlledFragmentAssembler> fragmentAssembler_ = nullptr;
 
-    void init_fragment_assembler(pybind11::function handler);
+    void init_fragment_assembler();
 };

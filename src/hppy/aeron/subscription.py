@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from _context import *
+from hppy.aeron._subscription import *

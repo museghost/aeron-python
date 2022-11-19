@@ -30,6 +30,11 @@ using namespace aeron;
 using namespace fmt;
 namespace py = pybind11;
 
+static void init_threads() {
+    if (!PyEval_ThreadsInitialized()) {
+        PyEval_InitThreads();
+    }
+}
 
 context::context(py::kwargs args)
 {
@@ -46,6 +51,10 @@ context::context(py::kwargs args)
     static constexpr auto unavailable_image_handler_key = "unavailable_image_handler";
 
     static constexpr auto default_aeron_dir_var = "AERON_DIR";
+
+#ifdef PYPY_VERSION
+    init_threads();
+#endif
 
     // defaults from environment variables
     if(auto default_aeron_dir = getenv(default_aeron_dir_var))
@@ -139,7 +148,7 @@ context::context(py::kwargs args)
                 [handler = handler.cast<py::function>()](
                         auto &channel, auto stream_id, auto correlation_id)
                 {
-                    py::gil_scoped_acquire gil_guard;
+                    py::gil_scoped_acquire gil_guard{};
                     handler(channel, stream_id, correlation_id);
                 });
     }
@@ -155,7 +164,7 @@ context::context(py::kwargs args)
         aeron_context_.availableImageHandler(
                 [handler = handler.cast<py::function>()](auto& image)
                 {
-                    py::gil_scoped_acquire gil_guard;
+                    py::gil_scoped_acquire gil_guard{};
                     handler(image);
                 });
     }
@@ -230,4 +239,3 @@ PYBIND11_MODULE(_context, m)
             //     py::keep_alive<0, 1>());
 
 }
-

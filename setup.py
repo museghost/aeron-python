@@ -1,9 +1,13 @@
+# -*- coding: utf-8 -*-
 import os
 import re
 import sys
 import multiprocessing
 import platform
 import subprocess
+import sysconfig
+
+import pathlib
 
 from setuptools import setup, Extension, find_packages, findall
 from setuptools.command.build_ext import build_ext
@@ -36,11 +40,21 @@ class CMakeBuild(build_ext):
             self.build_extension(ext)
 
     def build_extension(self, ext):
+        print(f"build_extension {ext}")
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                      '-DPYTHON_EXECUTABLE=' + sys.executable]
-
         cfg = 'Debug' if self.debug else 'Release'
+        
+        cmake_args = [
+            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), os.path.join(extdir, "hppy/aeron")),
+            '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), self.build_temp),
+            '-DPYTHON_EXECUTABLE={}'.format(sys.executable),
+            #'-DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON',
+        ]
+
+        cmake_args += [
+            '-DPYTHON_EXTENSION_SUFFIX={}'.format(sysconfig.get_config_var('EXT_SUFFIX'))
+        ]
+
         build_args = ['--config', cfg]
 
         if platform.system() == "Windows":
@@ -64,21 +78,22 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
+        # https://stackoverflow.com/questions/42585210/extending-setuptools-extension-to-use-cmake-in-setup-py
+        cwd = pathlib.Path().absolute()
+
+        build_temp = pathlib.Path(self.build_temp)
+        os.chdir(str(build_temp))
+        self.spawn(['conan', 'install', '../..', '-pr=gcc9.release'])
+        os.chdir(str(cwd))
+
         cmake = env['CMAKE'] if 'CMAKE' in env else 'cmake'
-        subprocess.check_call([cmake, ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
+        # cmake config
+        subprocess.check_call([cmake, str(cwd)] + cmake_args, cwd=self.build_temp, env=env)
+        # cmake build
         subprocess.check_call([cmake, '--build', '.'] + build_args, cwd=self.build_temp)
 
-        packagedir = os.path.join(ext.sourcedir, 'sources/package')
-        self.distribution.packages = find_packages(packagedir)
-        self.distribution.package_dir = {package:os.path.join(packagedir, package.replace('.', '/'))
-                                         for package in self.distribution.packages}
-        self.distribution.package_data = {package:[filename
-                                                   for filename in findall(self.distribution.package_dir[package])
-                                                   if os.path.splitext(filename)[1] == '.pyi']
-                                          for package in self.distribution.packages}
 
-
-class PackageInfo(object):
+class PackageInfo:
     def __init__(self):
         here, _ = os.path.split(__file__)
         filename = os.path.join(here, 'PKG-INFO')
@@ -112,7 +127,7 @@ class PackageInfo(object):
 
 info = PackageInfo()
 setup(
-    name='aeronpy',
+    name='hppy',
     version=info.version,
     author=info.author,
     author_email=info.author_email,
@@ -120,8 +135,15 @@ setup(
     license=info.license,
     description='Python bindings for Aeron',
     long_description='',
-    ext_modules=[CMakeExtension('aeronpy')],
-    cmdclass=dict(build_ext=CMakeBuild),
+    packages=['hppy', 'hppy.aeron', 'hppy.agrona'],
+    package_dir={'': 'src',},
+    package_data={
+        'hppy.aeron': ['*.pyi']
+    },
+    ext_modules=[CMakeExtension('hppy')],
+    cmdclass={
+        'build_ext': CMakeBuild,
+    },
     zip_safe=False,
     python_requires='>=3.6.*'
 )

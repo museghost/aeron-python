@@ -63,26 +63,27 @@ vector<Image> subscription::images() const
     return *aeron_subscription_->images();
 }
 
-void subscription::init_fragment_assembler(py::function handler)
+void subscription::init_fragment_assembler()
 {
     if (!fragmentAssembler_)
     {
-        fragmentAssembler_ = make_unique<ControlledFragmentAssembler>(
-            [this, &handler](AtomicBuffer& buffer,
+        fragmentAssembler_ = make_shared<aeron::ControlledFragmentAssembler>(
+            [this](AtomicBuffer& buffer,
                    index_t offset,
                    index_t length,
                    Header& header)
             {
                 py::gil_scoped_acquire gil_guard;
-
-                auto data_info = py::buffer_info(
+            
+                auto data_info = py::memoryview::from_buffer(
                     buffer.buffer() + offset,
                     sizeof(uint8_t),
-                    py::format_descriptor<uint8_t>::format(),
-                    length);
+                    py::format_descriptor<uint8_t>::format().c_str(),
+                    {length}, 
+                    {sizeof(uint8_t)}
+                );
 
-                handler(py::memoryview(data_info), header);
-
+                py_func_handler(data_info, header);
                 return ControlledPollAction::CONTINUE;
             });
     }
@@ -90,7 +91,8 @@ void subscription::init_fragment_assembler(py::function handler)
 
 int subscription::poll(py::function handler, int fragment_limit)
 {
-    init_fragment_assembler(handler);
+    py_func_handler = handler;
+    init_fragment_assembler();    
 
     return aeron_subscription_->poll(fragmentAssembler_->handler(), fragment_limit);
 }

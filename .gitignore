@@ -1,0 +1,9 @@
+aeronpy.egg-info/**
+src/hppy.egg-info/**
+dist/**
+build/**
+build-cpython3.9/**
+build-pypy3.9/**
+Testing/**
+tests/**
+external/**
